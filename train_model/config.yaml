@@ -16,7 +16,7 @@ dataset:
   num_workers: 2
 
 model:
-  # Options: resnet18, convnext_tiny
+  # Options: resnet18, resnet50, convnext_tiny
   name: resnet18
   pretrained: true
 

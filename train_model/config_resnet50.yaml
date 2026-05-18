@@ -1,0 +1,42 @@
+seed: 42
+device: auto
+
+dataset:
+  root: dataset
+  train_annotation: train_annotation.txt
+  val_annotation: val_annotation.txt
+  test_annotation: test_annotation.txt
+  label_names:
+    "0": Gach_Ten
+    "1": Ten
+  input_size: [128, 512]
+  pad_color: 255
+  num_workers: 2
+
+model:
+  name: resnet50
+  pretrained: true
+
+training:
+  output_dir: runs/cnn_resnet50
+  epochs: 20
+  batch_size: 16
+  lr: 0.00005
+  weight_decay: 0.0001
+  optimizer: adamw
+  class_weight: balanced
+  patience: 8
+  amp: true
+  augment: true
+
+svm:
+  output_dir: runs/svm_resnet50
+  cnn_checkpoint: runs/cnn_resnet50/best_cnn.pt
+  feature_cache: runs/svm_resnet50/features.npz
+  kernel: rbf
+  cv: 5
+  scoring: f1_macro
+  class_weight: balanced
+  probability: true
+  C: [0.1, 1, 10, 100]
+  gamma: [scale, 0.001, 0.01, 0.1]

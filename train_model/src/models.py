@@ -4,11 +4,12 @@ from pathlib import Path
 
 import torch
 from torch import nn
-from torchvision.models import ConvNeXt_Tiny_Weights, ResNet18_Weights, convnext_tiny, resnet18
+from torchvision.models import ConvNeXt_Tiny_Weights, ResNet18_Weights, ResNet50_Weights, convnext_tiny, resnet18, resnet50
 
 
 SUPPORTED_MODELS = {
     "resnet18": 512,
+    "resnet50": 2048,
     "convnext_tiny": 768,
 }
 
@@ -17,6 +18,7 @@ def normalize_model_name(name: str) -> str:
     normalized = name.lower().replace("-", "_").replace(" ", "_")
     aliases = {
         "resnet_18": "resnet18",
+        "resnet_50": "resnet50",
         "convnexttiny": "convnext_tiny",
         "convnext_t": "convnext_tiny",
         "convnext_tiny": "convnext_tiny",
@@ -42,6 +44,16 @@ def build_resnet18(num_classes: int = 2, pretrained: bool = True) -> nn.Module:
     return model
 
 
+def build_resnet50(num_classes: int = 2, pretrained: bool = True) -> nn.Module:
+    weights = ResNet50_Weights.IMAGENET1K_V2 if pretrained else None
+    model = resnet50(weights=weights)
+    in_features = model.fc.in_features
+    model.fc = nn.Linear(in_features, num_classes)
+    model.backbone_name = "resnet50"
+    model.feature_dim = in_features
+    return model
+
+
 def build_convnext_tiny(num_classes: int = 2, pretrained: bool = True) -> nn.Module:
     weights = ConvNeXt_Tiny_Weights.IMAGENET1K_V1 if pretrained else None
     model = convnext_tiny(weights=weights)
@@ -56,6 +68,8 @@ def build_model(model_name: str, num_classes: int = 2, pretrained: bool = True) 
     name = normalize_model_name(model_name)
     if name == "resnet18":
         return build_resnet18(num_classes=num_classes, pretrained=pretrained)
+    if name == "resnet50":
+        return build_resnet50(num_classes=num_classes, pretrained=pretrained)
     if name == "convnext_tiny":
         return build_convnext_tiny(num_classes=num_classes, pretrained=pretrained)
     supported = ", ".join(sorted(SUPPORTED_MODELS))
@@ -76,7 +90,7 @@ class CNNFeatureExtractor(nn.Module):
     def __init__(self, trained_cnn: nn.Module, model_name: str | None = None) -> None:
         super().__init__()
         self.model_name = normalize_model_name(model_name or infer_model_name(trained_cnn))
-        if self.model_name == "resnet18":
+        if self.model_name in {"resnet18", "resnet50"}:
             self.features = nn.Sequential(*list(trained_cnn.children())[:-1])
         elif self.model_name == "convnext_tiny":
             self.features = trained_cnn.features

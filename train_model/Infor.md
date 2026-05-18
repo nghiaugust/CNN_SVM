@@ -26,7 +26,10 @@ python visualize_dataset.py --config config.yaml
 # Chay pipeline train resnet18
 python run_pipeline.py --config config.yaml
 
+# Chay pipeline train resnet50
+python run_pipeline.py --config config_resnet50.yaml
+
 # Chay pipeline train convnext_tiny
 python run_pipeline.py --config config_convnext_tiny.yaml
 
-ResNet18 sinh feature 512 chieu. ConvNeXt-Tiny sinh feature 768 chieu.
+ResNet18 sinh feature 512 chieu. ResNet50 sinh feature 2048 chieu. ConvNeXt-Tiny sinh feature 768 chieu.
