@@ -1,0 +1,47 @@
+seed: 42
+device: auto
+
+dataset:
+  root: dataset
+  train_annotation: train_annotation.txt
+  val_annotation: val_annotation.txt
+  test_annotation: test_annotation.txt
+  # Current annotation mapping: Gach_Ten = 0, Ten = 1.
+  label_names:
+    "0": Gach_Ten
+    "1": Ten
+  # Name images are very wide; ResNet still returns 512-dim features with rectangular input.
+  input_size: [128, 512]  # [height, width]
+  pad_color: 255
+  num_workers: 2
+
+model:
+  # Options: resnet18, convnext_tiny
+  name: resnet18
+  pretrained: true
+
+training:
+  # Change this when comparing models, for example: runs/cnn_convnext_tiny
+  output_dir: runs/cnn_resnet18
+  epochs: 20
+  batch_size: 32
+  lr: 0.0001
+  weight_decay: 0.0001
+  optimizer: adamw
+  class_weight: balanced
+  patience: 8
+  amp: true
+  augment: true
+
+svm:
+  # These paths should match the CNN output_dir when comparing models.
+  output_dir: runs/svm_resnet18
+  cnn_checkpoint: runs/cnn_resnet18/best_cnn.pt
+  feature_cache: runs/svm_resnet18/features.npz
+  kernel: rbf
+  cv: 5
+  scoring: f1_macro
+  class_weight: balanced
+  probability: true
+  C: [0.1, 1, 10, 100]
+  gamma: [scale, 0.001, 0.01, 0.1]

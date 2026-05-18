@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+runs/
+*.pt
+*.pth
+*.joblib
+*.npz
+/dataset/
