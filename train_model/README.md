@@ -174,7 +174,14 @@ Important paths for comparison:
 
 ## Deploy ResNet18 for Real Inference
 
-The deploy package is in `deploy_resnet18/`. It can run either:
+Deploy packages are available per model:
+
+- `deploy_resnet18/`
+- `deploy_resnet50/`
+- `deploy_convnext_tiny/`
+- `deploy_yolov8/`
+
+CNN deploy packages can run either:
 
 - CNN only: `best_cnn.pt`
 - CNN + SVM: `best_cnn.pt` plus `svm_model.joblib`
@@ -209,4 +216,12 @@ If you do not want to copy weights, pass paths directly:
 
 ```powershell
 python deploy_resnet18\predict.py --mode svm --input C:\path\to\image.jpg --cnn-checkpoint runs\cnn_resnet18\best_cnn.pt --svm-model runs\svm_resnet18\svm_model.joblib
+```
+
+For the other models, use the matching folder:
+
+```powershell
+python deploy_resnet50\predict.py --mode cnn --input C:\path\to\image.jpg --cnn-checkpoint runs\cnn_resnet50\best_cnn.pt
+python deploy_convnext_tiny\predict.py --mode svm --input C:\path\to\image.jpg --cnn-checkpoint runs\cnn_convnext_tiny\best_cnn.pt --svm-model runs\svm_convnext_tiny\svm_model.joblib
+python deploy_yolov8\predict.py --input C:\path\to\image.jpg --checkpoint runs\yolov8_cls\yolov8n_cls\weights\best.pt
 ```
