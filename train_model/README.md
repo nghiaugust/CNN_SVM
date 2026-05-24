@@ -149,6 +149,41 @@ SVM:
 python evaluate.py --config config.yaml --model-type svm --split test --svm-model runs/svm_resnet18/svm_model.joblib --feature-cache runs/svm_resnet18/features.npz
 ```
 
+## Đánh giá 4 deploy model
+
+Chuẩn bị thư mục đánh giá:
+
+```text
+evaluate/
+  0/   # khong gach
+    1.jpg
+    2.jpg
+  1/   # co gach
+    1.jpg
+    2.jpg
+```
+
+Chạy đánh giá cả 4 deploy package:
+
+```powershell
+python evaluate_deploy_models.py --data evaluate
+```
+
+Mặc định script dùng `--cnn-mode both` cho ResNet/ConvNeXt, nên mỗi model CNN sẽ được đánh giá cả `cnn` và `svm`. YOLOv8 được đánh giá ở mode `classify`. Script đo thời gian chỉ quanh bước model phân loại theo batch, không đo thời gian load model hoặc đọc ảnh. Kết quả lưu tại:
+
+```text
+runs/deploy_evaluation/metrics.csv
+```
+
+Nếu chỉ muốn đánh giá một mode của ResNet/ConvNeXt:
+
+```powershell
+python evaluate_deploy_models.py --data evaluate --cnn-mode cnn
+python evaluate_deploy_models.py --data evaluate --cnn-mode svm
+```
+
+Dataset evaluate dùng nhãn `0=khong gach`, `1=co gach`, còn config train hiện tại dùng `0=Gach_Ten`, `1=Ten`; vì vậy script mặc định dùng `--prediction-map auto` để đổi nhãn dự đoán về đúng format evaluate.
+
 ## Compare ResNet18, ResNet50 and ConvNeXt-Tiny
 
 Default config uses `model.name: resnet18` and writes to `runs/cnn_resnet18`, `runs/svm_resnet18`.
