@@ -13,7 +13,7 @@ from src.data import make_eval_loader
 from src.engine import evaluate_cnn
 from src.metrics import save_classification_outputs
 from src.models import load_cnn_checkpoint
-from src.utils import ensure_dir, get_device
+from src.utils import configure_device, describe_device, ensure_dir, get_device
 from src.visualize import plot_binary_curves, plot_confusion, plot_misclassified_grid
 
 
@@ -26,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--svm-model", default=None, help="svm_model.joblib file when model-type=svm.")
     parser.add_argument("--feature-cache", default=None, help="features.npz file created by train_svm.py.")
     parser.add_argument("--output-dir", default="runs/evaluation")
+    parser.add_argument("--device", default=None, help="Device to use for CNN evaluation: auto, cpu, cuda, cuda:0, ...")
     return parser.parse_args()
 
 
@@ -33,6 +34,8 @@ def evaluate_cnn_cli(cfg: dict, args: argparse.Namespace, names: list[str]) -> N
     checkpoint = args.checkpoint or cfg["svm"].get("cnn_checkpoint") or "runs/cnn_resnet18/best_cnn.pt"
     output_dir = ensure_dir(args.output_dir)
     device = get_device(str(cfg.get("device", "auto")))
+    configure_device(device)
+    print(f"Device: {describe_device(device)}")
     model, _ = load_cnn_checkpoint(checkpoint, num_classes=len(names), device=device)
     loader = make_eval_loader(cfg, args.split)
     result = evaluate_cnn(
@@ -87,6 +90,8 @@ def evaluate_svm_cli(cfg: dict, args: argparse.Namespace, names: list[str]) -> N
 def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)
+    if args.device is not None:
+        cfg["device"] = args.device
     names = label_names(cfg)
     if args.model_type == "cnn":
         evaluate_cnn_cli(cfg, args, names)

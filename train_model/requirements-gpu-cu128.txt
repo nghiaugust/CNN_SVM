@@ -1,0 +1,6 @@
+# NVIDIA GPU build for PyTorch CUDA 12.8.
+# Install this before requirements.txt if you want CUDA training:
+#   pip install -r requirements-gpu-cu128.txt
+--index-url https://download.pytorch.org/whl/cu128
+torch
+torchvision

@@ -1,0 +1,51 @@
+seed: 42
+device: cuda
+
+dataset:
+  root: dataset
+  train_annotation: train_annotation.txt
+  val_annotation: val_annotation.txt
+  test_annotation: test_annotation.txt
+  label_names:
+    "0": Gach_Ten
+    "1": Ten
+  # Ultralytics classification expects train/val/test folders with one class folder each.
+  # train_yolov8.py builds this folder from the annotation files above.
+  yolo_root: dataset_yolov8_cls
+  link_mode: hardlink  # hardlink, copy, or symlink
+  input_size: [128, 512]
+  pad_color: 255
+  num_workers: 2
+
+model:
+  # YOLOv8 classification checkpoints: yolov8n-cls.pt, yolov8s-cls.pt, yolov8m-cls.pt, ...
+  name: yolov8n-cls.pt
+  task: classify
+  pretrained: true
+
+training:
+  output_dir: runs/yolov8_cls
+  run_name: yolov8n_cls
+  epochs: 20
+  batch_size: 32
+  # Ultralytics uses an integer imgsz for model setup. The custom letterbox transform
+  # below keeps the wide name image aspect ratio at [height, width].
+  imgsz: 512
+  letterbox: true
+  letterbox_size: [128, 512]
+  lr0: 0.0001
+  lrf: 0.01
+  weight_decay: 0.0001
+  optimizer: AdamW
+  patience: 10
+  amp: true
+  augment: true
+  cache: false
+  plots: true
+  val: true
+  save_period: -1
+  exist_ok: true
+
+evaluation:
+  enabled: true
+  splits: [val, test]

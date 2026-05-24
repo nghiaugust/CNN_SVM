@@ -16,7 +16,7 @@ from src.data import make_eval_loader
 from src.features import extract_features
 from src.metrics import save_classification_outputs
 from src.models import infer_model_name, load_cnn_checkpoint
-from src.utils import ensure_dir, get_device, save_json, set_seed
+from src.utils import configure_device, describe_device, ensure_dir, get_device, save_json, set_seed
 from src.visualize import (
     plot_binary_curves,
     plot_confusion,
@@ -30,6 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--cnn-checkpoint", default=None)
     parser.add_argument("--output-dir", default=None)
+    parser.add_argument("--device", default=None, help="Device to use for CNN feature extraction: auto, cpu, cuda, cuda:0, ...")
     parser.add_argument("--force-extract", action="store_true")
     return parser.parse_args()
 
@@ -41,6 +42,8 @@ def extract_or_load_feature_cache(cfg: dict, checkpoint_path: str | Path, cache_
         return {key: data[key] for key in data.files}
 
     device = get_device(str(cfg.get("device", "auto")))
+    configure_device(device)
+    print(f"Feature extraction device: {describe_device(device)}")
     names = label_names(cfg)
     model, checkpoint = load_cnn_checkpoint(checkpoint_path, num_classes=len(names), device=device)
     model_name = checkpoint.get("model_name", infer_model_name(model)) if isinstance(checkpoint, dict) else infer_model_name(model)
@@ -73,6 +76,7 @@ def main() -> None:
     cfg = deep_update(
         cfg,
         {
+            "device": args.device,
             "svm": {
                 "output_dir": args.output_dir,
                 "cnn_checkpoint": args.cnn_checkpoint,

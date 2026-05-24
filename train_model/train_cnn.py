@@ -13,7 +13,7 @@ from src.data import make_cnn_loaders
 from src.engine import evaluate_cnn, history_row, train_one_epoch
 from src.metrics import save_classification_outputs
 from src.models import build_model, get_feature_dim, normalize_model_name
-from src.utils import ensure_dir, get_device, set_seed
+from src.utils import configure_device, describe_device, ensure_dir, get_device, set_seed
 from src.visualize import (
     plot_binary_curves,
     plot_class_distribution,
@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--device", default=None, help="Device to use: auto, cpu, cuda, cuda:0, ...")
     parser.add_argument("--no-augment", action="store_true")
     return parser.parse_args()
 
@@ -96,6 +97,7 @@ def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)
     overrides = {
+        "device": args.device,
         "training": {
             "output_dir": args.output_dir,
             "epochs": args.epochs,
@@ -108,6 +110,7 @@ def main() -> None:
 
     set_seed(int(cfg.get("seed", 42)))
     device = get_device(str(cfg.get("device", "auto")))
+    configure_device(device)
     output_dir = ensure_dir(cfg["training"]["output_dir"])
     save_config(cfg, output_dir / "config_used.yaml")
 
@@ -148,7 +151,8 @@ def main() -> None:
     patience = int(cfg["training"].get("patience", 0))
     amp = bool(cfg["training"].get("amp", True))
 
-    print(f"Device: {device}")
+    print(f"Device: {describe_device(device)}")
+    print(f"AMP: {bool(cfg['training'].get('amp', True)) and device.type == 'cuda'}")
     print(f"Backbone: {model_name}, feature_dim={get_feature_dim(model_name)}")
     print(f"Train/Val/Test: {len(train_loader.dataset)}/{len(val_loader.dataset)}/{len(test_loader.dataset)}")
     print(f"Output: {output_dir}")

@@ -13,6 +13,36 @@ Pipeline gồm 2 giai đoạn:
 pip install -r requirements.txt
 ```
 
+### GPU / CUDA setup
+
+Config mac dinh hien tai dung `device: cuda`, nen training se dung NVIDIA GPU. Neu PyTorch dang la ban CPU-only, chuong trinh se dung lai va bao loi ro rang.
+
+Kiem tra PyTorch co thay GPU khong:
+
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NO CUDA')"
+```
+
+Neu ket qua la `False` hoac version co `+cpu`, cai lai PyTorch CUDA truoc khi cai cac package con lai:
+
+```powershell
+pip uninstall -y torch torchvision
+pip install -r requirements-gpu-cu128.txt
+pip install -r requirements.txt
+```
+
+Train ep GPU:
+
+```powershell
+python train_cnn.py --config config.yaml --device cuda
+```
+
+Neu muon chon GPU cu the:
+
+```powershell
+python train_cnn.py --config config.yaml --device cuda:0
+```
+
 ## Xem tổng quan dataset
 
 ```powershell
@@ -61,6 +91,37 @@ Output chính trong `runs/svm_resnet18/`:
 - `svm_test_classification_report.txt`
 - `svm_test_predictions.csv`
 - `svm_test_misclassified.png`
+
+## Train YOLOv8 classification
+
+YOLOv8 duoc train nhu model classification vi dataset hien tai chi co nhan anh, khong co bounding box.
+File cau hinh rieng nam o `config_yolov8.yaml`.
+
+Kiem tra annotation va thong ke split:
+
+```powershell
+python train_yolov8.py --config config_yolov8.yaml --dry-run
+```
+
+Train YOLOv8:
+
+```powershell
+python train_yolov8.py --config config_yolov8.yaml
+```
+
+Script se tao dataset Ultralytics classification tai `dataset_yolov8_cls/` theo format:
+
+```text
+dataset_yolov8_cls/
+  train/Gach_Ten/*.jpg
+  train/Ten/*.jpg
+  val/Gach_Ten/*.jpg
+  val/Ten/*.jpg
+  test/Gach_Ten/*.jpg
+  test/Ten/*.jpg
+```
+
+Output mac dinh nam trong `runs/yolov8_cls/yolov8n_cls/`, checkpoint chinh la `weights/best.pt`.
 
 ## Chạy toàn bộ pipeline
 

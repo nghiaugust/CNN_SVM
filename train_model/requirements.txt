@@ -1,3 +1,6 @@
+# CPU-only PyTorch can make training fall back to CPU. For NVIDIA GPU training,
+# install a CUDA-enabled PyTorch wheel first, for example:
+#   pip install -r requirements-gpu-cu128.txt
 torch
 torchvision
 scikit-learn
@@ -9,3 +12,4 @@ PyYAML
 tqdm
 tensorboard
 joblib
+ultralytics>=8.3.0
