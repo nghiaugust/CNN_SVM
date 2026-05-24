@@ -8,3 +8,5 @@ runs/
 *.joblib
 *.npz
 /dataset/
+dataset_yolov8_cls/
+/evaluate/

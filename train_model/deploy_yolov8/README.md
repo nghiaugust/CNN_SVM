@@ -7,7 +7,7 @@ Thu muc nay chay inference cho YOLOv8 classification da train bang `config_yolov
 Neu chay tu thu muc `train_model/`:
 
 ```powershell
-Copy-Item runs\yolov8_cls\yolov8n_cls\weights\best.pt deploy_yolov8\weights\best.pt
+Copy-Item runs\classify\runs\yolov8_cls\yolov8n_cls\weights\best.pt deploy_yolov8\weights\best.pt
 ```
 
 Hoac truyen duong dan truc tiep:

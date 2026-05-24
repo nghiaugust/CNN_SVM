@@ -26,7 +26,7 @@ model:
 training:
   output_dir: runs/yolov8_cls
   run_name: yolov8n_cls
-  epochs: 20
+  epochs: 10
   batch_size: 32
   # Ultralytics uses an integer imgsz for model setup. The custom letterbox transform
   # below keeps the wide name image aspect ratio at [height, width].

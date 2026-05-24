@@ -19,7 +19,7 @@ model:
 
 training:
   output_dir: runs/cnn_resnet50
-  epochs: 20
+  epochs: 10
   batch_size: 16
   lr: 0.00005
   weight_decay: 0.0001
