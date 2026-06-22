@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
+import sys
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+os.chdir(PROJECT_ROOT)
 
 import numpy as np
 import pandas as pd
@@ -42,7 +50,7 @@ class NullSummaryWriter:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fine-tune a CNN backbone with Cross-Entropy.")
-    parser.add_argument("--config", default="config.yaml")
+    parser.add_argument("--config", default="configs/config.yaml")
     parser.add_argument("--output-dir", default=None)
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
@@ -127,7 +135,12 @@ def main() -> None:
     )
 
     model_name = normalize_model_name(str(cfg["model"].get("name", "resnet18")))
-    model = build_model(model_name, num_classes=len(names), pretrained=bool(cfg["model"].get("pretrained", True)))
+    model = build_model(
+        model_name,
+        num_classes=len(names),
+        pretrained=bool(cfg["model"].get("pretrained", True)),
+        input_size=cfg["dataset"].get("input_size"),
+    )
     model.to(device)
     criterion = make_criterion(cfg, train_loader, device)
     optimizer = make_optimizer(model, cfg)

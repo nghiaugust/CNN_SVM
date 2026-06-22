@@ -12,6 +12,20 @@ from torchvision import transforms
 from .utils import cpu_count_for_loader
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_dataset_root(root: str | Path) -> Path:
+    root_path = Path(root)
+    if root_path.exists() or root_path.is_absolute():
+        return root_path
+
+    fallback = PROJECT_ROOT / "data" / root_path.name
+    if fallback.exists():
+        return fallback
+    return root_path
+
+
 class LetterboxResize:
     """Resize with aspect ratio preserved, then pad to a fixed canvas."""
 
@@ -43,7 +57,7 @@ class NameAnnotationDataset(Dataset):
         annotation_file: str | Path,
         transform=None,
     ) -> None:
-        self.root = Path(root)
+        self.root = resolve_dataset_root(root)
         self.annotation_file = self.root / annotation_file
         self.transform = transform
         self.samples: list[tuple[Path, int]] = []

@@ -7,6 +7,7 @@ runs/
 *.pth
 *.joblib
 *.npz
-/dataset/
+/metrics.csv
+/data/
 dataset_yolov8_cls/
 /evaluate/

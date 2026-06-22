@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Iterable
 
 import torch
 from torch import nn
@@ -11,6 +12,7 @@ SUPPORTED_MODELS = {
     "resnet18": 512,
     "resnet50": 2048,
     "convnext_tiny": 768,
+    "deit_small": 384,
 }
 
 
@@ -22,6 +24,12 @@ def normalize_model_name(name: str) -> str:
         "convnexttiny": "convnext_tiny",
         "convnext_t": "convnext_tiny",
         "convnext_tiny": "convnext_tiny",
+        "deit": "deit_small",
+        "deit_s": "deit_small",
+        "deit_small": "deit_small",
+        "deit_small_patch16": "deit_small",
+        "deit_small_patch16_224": "deit_small",
+        "vit_deit_small": "deit_small",
     }
     return aliases.get(normalized, normalized)
 
@@ -64,7 +72,40 @@ def build_convnext_tiny(num_classes: int = 2, pretrained: bool = True) -> nn.Mod
     return model
 
 
-def build_model(model_name: str, num_classes: int = 2, pretrained: bool = True) -> nn.Module:
+def _img_size(input_size: Iterable[int] | None) -> tuple[int, int]:
+    if input_size is None:
+        return (128, 512)
+    height, width = list(input_size)
+    return int(height), int(width)
+
+
+def build_deit_small(
+    num_classes: int = 2,
+    pretrained: bool = True,
+    input_size: Iterable[int] | None = None,
+) -> nn.Module:
+    try:
+        import timm
+    except ImportError as exc:
+        raise ImportError("DeiT-Small requires the 'timm' package. Install it with: pip install timm") from exc
+
+    model = timm.create_model(
+        "deit_small_patch16_224",
+        pretrained=pretrained,
+        num_classes=num_classes,
+        img_size=_img_size(input_size),
+    )
+    model.backbone_name = "deit_small"
+    model.feature_dim = int(getattr(model, "num_features", SUPPORTED_MODELS["deit_small"]))
+    return model
+
+
+def build_model(
+    model_name: str,
+    num_classes: int = 2,
+    pretrained: bool = True,
+    input_size: Iterable[int] | None = None,
+) -> nn.Module:
     name = normalize_model_name(model_name)
     if name == "resnet18":
         return build_resnet18(num_classes=num_classes, pretrained=pretrained)
@@ -72,6 +113,8 @@ def build_model(model_name: str, num_classes: int = 2, pretrained: bool = True) 
         return build_resnet50(num_classes=num_classes, pretrained=pretrained)
     if name == "convnext_tiny":
         return build_convnext_tiny(num_classes=num_classes, pretrained=pretrained)
+    if name == "deit_small":
+        return build_deit_small(num_classes=num_classes, pretrained=pretrained, input_size=input_size)
     supported = ", ".join(sorted(SUPPORTED_MODELS))
     raise ValueError(f"Unsupported model '{model_name}'. Supported models: {supported}")
 
@@ -81,6 +124,8 @@ def infer_model_name(model: nn.Module) -> str:
         return normalize_model_name(str(model.backbone_name))
     if hasattr(model, "fc"):
         return "resnet18"
+    if hasattr(model, "forward_features") and hasattr(model, "forward_head"):
+        return "deit_small"
     if hasattr(model, "classifier") and hasattr(model, "features") and hasattr(model, "avgpool"):
         return "convnext_tiny"
     raise ValueError("Cannot infer CNN backbone name from model instance.")
@@ -96,11 +141,17 @@ class CNNFeatureExtractor(nn.Module):
             self.features = trained_cnn.features
             self.avgpool = trained_cnn.avgpool
             self.pre_classifier = nn.Sequential(*list(trained_cnn.classifier.children())[:-1])
+        elif self.model_name == "deit_small":
+            self.trained_cnn = trained_cnn
         else:
             supported = ", ".join(sorted(SUPPORTED_MODELS))
             raise ValueError(f"Unsupported feature extractor '{self.model_name}'. Supported models: {supported}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.model_name == "deit_small":
+            features = self.trained_cnn.forward_features(x)
+            return self.trained_cnn.forward_head(features, pre_logits=True)
+
         if self.model_name == "convnext_tiny":
             x = self.features(x)
             x = self.avgpool(x)
@@ -129,7 +180,11 @@ def load_cnn_checkpoint(
     if isinstance(checkpoint, dict):
         checkpoint_model_name = checkpoint.get("model_name") or model_section.get("name")
     resolved_model_name = model_name or checkpoint_model_name or "resnet18"
-    model = build_model(resolved_model_name, num_classes=num_classes, pretrained=False)
+    dataset_section = checkpoint_cfg.get("dataset", {}) if isinstance(checkpoint_cfg, dict) else {}
+    if not isinstance(dataset_section, dict):
+        dataset_section = {}
+    input_size = dataset_section.get("input_size")
+    model = build_model(resolved_model_name, num_classes=num_classes, pretrained=False, input_size=input_size)
     state_dict = checkpoint.get("model_state_dict", checkpoint)
     model.load_state_dict(state_dict)
     model.to(device)

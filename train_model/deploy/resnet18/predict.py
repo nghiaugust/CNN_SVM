@@ -55,7 +55,7 @@ class ResNet18FeatureExtractor(nn.Module):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run ResNet18 CNN or ResNet18+SVM inference.")
-    parser.add_argument("--config", default=None, help="Deploy config. Default: deploy_resnet18/config.yaml")
+    parser.add_argument("--config", default=None, help="Deploy config. Default: current folder/config.yaml")
     parser.add_argument("--mode", choices=["cnn", "svm"], default="cnn", help="cnn = FC classifier, svm = CNN features + SVM.")
     parser.add_argument("--input", required=True, help="Image file or folder.")
     parser.add_argument("--output", default=None, help="Optional CSV output path.")

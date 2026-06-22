@@ -3,11 +3,18 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import sys
 from collections import Counter
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+os.chdir(PROJECT_ROOT)
 
 from src.config import deep_update, label_names, load_config, save_config
 
@@ -26,7 +33,7 @@ class AnnotationSample:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a YOLOv8 classification model from annotation text files.")
-    parser.add_argument("--config", default="config_yolov8.yaml")
+    parser.add_argument("--config", default="configs/config_yolov8.yaml")
     parser.add_argument("--model", default=None, help="Override YOLO checkpoint, e.g. yolov8s-cls.pt.")
     parser.add_argument("--output-dir", default=None)
     parser.add_argument("--run-name", default=None)
@@ -113,6 +120,17 @@ def read_annotation(root: Path, annotation_file: str | Path, names: list[str]) -
     return samples
 
 
+def resolve_dataset_root(root: str | Path) -> Path:
+    root_path = Path(root)
+    if root_path.exists() or root_path.is_absolute():
+        return root_path
+
+    fallback = PROJECT_ROOT / "data" / root_path.name
+    if fallback.exists():
+        return fallback
+    return root_path
+
+
 def destination_relative_path(sample: AnnotationSample, names: list[str]) -> Path:
     parts = sample.rel_path.parts
     if parts and parts[0] == names[sample.label]:
@@ -148,7 +166,7 @@ def materialize_image(source: Path, destination: Path, mode: str) -> str:
 
 def prepare_yolo_dataset(cfg: dict[str, Any], dry_run: bool = False) -> dict[str, Counter]:
     ds_cfg = cfg["dataset"]
-    root = Path(ds_cfg["root"])
+    root = resolve_dataset_root(ds_cfg["root"])
     yolo_root = Path(ds_cfg.get("yolo_root", "dataset_yolov8_cls"))
     names = label_names(cfg)
     link_mode = str(ds_cfg.get("link_mode", "hardlink")).lower()
@@ -235,31 +253,33 @@ def build_letterbox_transforms(augment: bool):
     return transforms.Compose(steps)
 
 
-try:
-    from ultralytics import YOLO
-    from ultralytics.data.dataset import ClassificationDataset
-    from ultralytics.models.yolo.classify import ClassificationTrainer, ClassificationValidator
-except ImportError:
-    YOLO = None
-    ClassificationDataset = None
-    ClassificationTrainer = None
-    ClassificationValidator = None
+YOLO = None
+LetterboxClassificationTrainer = None
+LetterboxClassificationValidator = None
 
 
-if ClassificationDataset is not None:
+def load_ultralytics() -> None:
+    global YOLO, LetterboxClassificationTrainer, LetterboxClassificationValidator
+    if YOLO is not None:
+        return
+
+    try:
+        from ultralytics import YOLO as UltralyticsYOLO
+        from ultralytics.data.dataset import ClassificationDataset
+        from ultralytics.models.yolo.classify import ClassificationTrainer, ClassificationValidator
+    except ImportError as exc:
+        raise SystemExit("Missing dependency 'ultralytics'. Install it with: pip install -r requirements.txt") from exc
 
     class LetterboxClassificationDataset(ClassificationDataset):
         def __init__(self, root: str, args, augment: bool = False, prefix: str = "", apply_augment: bool | None = None):
             super().__init__(root=root, args=args, augment=augment, prefix=prefix)
             self.torch_transforms = build_letterbox_transforms(bool(augment if apply_augment is None else apply_augment))
 
-
-    class LetterboxClassificationValidator(ClassificationValidator):
+    class LoadedLetterboxClassificationValidator(ClassificationValidator):
         def build_dataset(self, img_path: str) -> ClassificationDataset:
             return LetterboxClassificationDataset(root=img_path, args=self.args, augment=False, prefix=self.args.split)
 
-
-    class LetterboxClassificationTrainer(ClassificationTrainer):
+    class LoadedLetterboxClassificationTrainer(ClassificationTrainer):
         def build_dataset(self, img_path: str, mode: str = "train", batch=None) -> ClassificationDataset:
             is_train = mode == "train"
             return LetterboxClassificationDataset(
@@ -272,12 +292,16 @@ if ClassificationDataset is not None:
 
         def get_validator(self):
             self.loss_names = ["loss"]
-            return LetterboxClassificationValidator(
+            return LoadedLetterboxClassificationValidator(
                 self.test_loader,
                 self.save_dir,
                 args=copy(self.args),
                 _callbacks=self.callbacks,
             )
+
+    YOLO = UltralyticsYOLO
+    LetterboxClassificationTrainer = LoadedLetterboxClassificationTrainer
+    LetterboxClassificationValidator = LoadedLetterboxClassificationValidator
 
 
 def build_train_args(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -323,9 +347,7 @@ def build_train_args(cfg: dict[str, Any]) -> dict[str, Any]:
 
 
 def train_yolo(cfg: dict[str, Any]) -> None:
-    if YOLO is None:
-        raise SystemExit("Missing dependency 'ultralytics'. Install it with: pip install -r requirements.txt")
-
+    load_ultralytics()
     configure_letterbox(cfg)
     train_args = build_train_args(cfg)
     project = Path(train_args["project"])

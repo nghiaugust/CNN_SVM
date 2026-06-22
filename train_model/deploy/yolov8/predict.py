@@ -43,7 +43,7 @@ class LetterboxResize:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run YOLOv8 classification inference.")
-    parser.add_argument("--config", default=None, help="Deploy config. Default: deploy_yolov8/config.yaml")
+    parser.add_argument("--config", default=None, help="Deploy config. Default: current folder/config.yaml")
     parser.add_argument("--input", required=True, help="Image file or folder.")
     parser.add_argument("--output", default=None, help="Optional CSV output path.")
     parser.add_argument("--checkpoint", default=None, help="Override YOLOv8 .pt checkpoint path.")

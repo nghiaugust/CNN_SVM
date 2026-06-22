@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import argparse
+import os
+from pathlib import Path
 import subprocess
 import sys
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+os.chdir(PROJECT_ROOT)
+TRAIN_DIR = PROJECT_ROOT / "train"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the full pipeline: fine-tune CNN, then train SVM.")
-    parser.add_argument("--config", default="config.yaml")
+    parser.add_argument("--config", default="configs/config.yaml")
     parser.add_argument("--device", default=None, help="Device to pass to training scripts: auto, cpu, cuda, cuda:0, ...")
     parser.add_argument("--skip-cnn", action="store_true")
     parser.add_argument("--force-extract", action="store_true")
@@ -22,11 +29,11 @@ def run(cmd: list[str]) -> None:
 def main() -> None:
     args = parse_args()
     if not args.skip_cnn:
-        cnn_cmd = [sys.executable, "train_cnn.py", "--config", args.config]
+        cnn_cmd = [sys.executable, str(TRAIN_DIR / "train_cnn.py"), "--config", args.config]
         if args.device is not None:
             cnn_cmd.extend(["--device", args.device])
         run(cnn_cmd)
-    svm_cmd = [sys.executable, "train_svm.py", "--config", args.config]
+    svm_cmd = [sys.executable, str(TRAIN_DIR / "train_svm.py"), "--config", args.config]
     if args.device is not None:
         svm_cmd.extend(["--device", args.device])
     if args.force_extract:
